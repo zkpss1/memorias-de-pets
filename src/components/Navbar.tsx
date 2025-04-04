@@ -44,7 +44,7 @@ export default function Navbar() {
                   ? 'text-indigo-700 bg-indigo-50' 
                   : 'text-gray-700 hover:text-indigo-600 hover:bg-gray-50'
               } cursor-pointer transition-colors`}>
-                Criar Memória
+                Registrar Momento
               </div>
             </Link>
             <Link href="/about" passHref>
@@ -54,6 +54,15 @@ export default function Navbar() {
                   : 'text-gray-700 hover:text-indigo-600 hover:bg-gray-50'
               } cursor-pointer transition-colors`}>
                 Sobre
+              </div>
+            </Link>
+            <Link href="/admin" passHref>
+              <div className={`px-3 py-2 rounded-md text-sm font-medium ${
+                isActive('/admin') 
+                  ? 'text-indigo-700 bg-indigo-50' 
+                  : 'text-gray-700 hover:text-indigo-600 hover:bg-gray-50'
+              } cursor-pointer transition-colors`}>
+                Administração
               </div>
             </Link>
           </div>
@@ -111,7 +120,7 @@ export default function Navbar() {
                 } cursor-pointer transition-colors`}
                 onClick={() => setIsMenuOpen(false)}
               >
-                Criar Memória
+                Registrar Momento
               </div>
             </Link>
             <Link href="/about" passHref>
@@ -124,6 +133,18 @@ export default function Navbar() {
                 onClick={() => setIsMenuOpen(false)}
               >
                 Sobre
+              </div>
+            </Link>
+            <Link href="/admin" passHref>
+              <div
+                className={`block px-3 py-2 rounded-md text-base font-medium ${
+                  isActive('/admin') 
+                    ? 'text-indigo-700 bg-indigo-50' 
+                    : 'text-gray-700 hover:text-indigo-600 hover:bg-gray-50'
+                } cursor-pointer transition-colors`}
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Administração
               </div>
             </Link>
           </div>

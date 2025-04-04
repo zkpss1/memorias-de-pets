@@ -1,276 +1,268 @@
-import { useState, useCallback } from 'react';
-import Head from 'next/head';
+import { useState } from 'react';
 import { useRouter } from 'next/router';
+import Head from 'next/head';
 import { motion } from 'framer-motion';
+import { v4 as uuidv4 } from 'uuid';
 import { FilePond, registerPlugin } from 'react-filepond';
 import FilePondPluginImagePreview from 'filepond-plugin-image-preview';
-import { v4 as uuidv4 } from 'uuid';
-import Link from 'next/link';
+import FilePondPluginFileValidateType from 'filepond-plugin-file-validate-type';
 import { savePet, filesToDataUrls } from '../utils/localStorageUtils';
 
-// Import FilePond styles
+// Importar estilos do FilePond
 import 'filepond/dist/filepond.min.css';
 import 'filepond-plugin-image-preview/dist/filepond-plugin-image-preview.css';
 
-// Register FilePond plugins
-registerPlugin(FilePondPluginImagePreview);
+// Registrar plugins do FilePond
+registerPlugin(FilePondPluginImagePreview, FilePondPluginFileValidateType);
+
+interface FormData {
+  name: string;
+  type: string;
+  birthDate: string;
+  description: string;
+}
 
 export default function CreateMemory() {
   const router = useRouter();
-  const [petName, setPetName] = useState('');
-  const [petType, setPetType] = useState('');
-  const [birthDate, setBirthDate] = useState('');
-  const [description, setDescription] = useState('');
+  const [formData, setFormData] = useState<FormData>({
+    name: '',
+    type: '',
+    birthDate: '',
+    description: ''
+  });
   const [files, setFiles] = useState<any[]>([]);
+  const [errors, setErrors] = useState<Partial<FormData>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState('');
-  const [savedPetId, setSavedPetId] = useState<string | null>(null);
-  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+    
+    // Limpar erro quando o usuário começa a digitar
+    if (errors[name as keyof typeof errors]) {
+      setErrors(prev => ({
+        ...prev,
+        [name]: undefined
+      }));
+    }
+  };
+
+  const validateForm = () => {
+    const newErrors: Partial<FormData> = {};
+    
+    if (!formData.name.trim()) {
+      newErrors.name = 'Nome é obrigatório';
+    }
+    
+    if (!formData.type.trim()) {
+      newErrors.type = 'Tipo é obrigatório';
+    }
+    
+    if (!formData.description.trim()) {
+      newErrors.description = 'Descrição é obrigatória';
+    }
+    
+    if (files.length === 0) {
+      // Mostrar erro geral, não específico para um campo
+      alert('Por favor, adicione pelo menos uma foto');
+      return false;
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!petName || !petType || !description || files.length === 0) {
-      setError('Por favor, preencha todos os campos obrigatórios e faça upload de pelo menos uma imagem');
+    if (!validateForm()) {
       return;
     }
     
     setIsSubmitting(true);
-    setError('');
     setUploadProgress(0);
     
     try {
-      console.log('Iniciando o processo de envio do formulário...');
+      // Simular progresso de upload
+      const progressInterval = setInterval(() => {
+        setUploadProgress(prev => {
+          const newProgress = prev + 5;
+          return newProgress >= 90 ? 90 : newProgress; // Limitar a 90% até que termine
+        });
+      }, 200);
       
-      // Generate a unique ID for the pet
-      const petId = uuidv4();
-      console.log('ID gerado:', petId);
-      setUploadProgress(20);
+      // Extrair arquivos reais dos objetos FilePond
+      const fileObjects = files.map(fileItem => fileItem.file);
       
-      // Convert FilePond files to standard File objects
-      console.log('Convertendo arquivos FilePond para File objects...');
-      const fileObjects = files.map(filepondFile => filepondFile.file);
-      console.log('Arquivos convertidos:', fileObjects.length);
-      setUploadProgress(40);
-      
-      // Convert files to data URLs instead of uploading to Firebase
-      console.log('Convertendo arquivos para Data URLs...');
+      // Converter arquivos para Data URLs
       const imageUrls = await filesToDataUrls(fileObjects);
-      console.log('URLs das imagens geradas:', imageUrls.length);
-      setUploadProgress(80);
       
-      // Save pet data to localStorage
-      console.log('Salvando dados do pet no armazenamento local...');
-      const petData = {
+      // Gerar ID único para o pet
+      const petId = uuidv4();
+      
+      // Salvar no localStorage (sem passar expiresAt e userId, que são adicionados pela função savePet)
+      savePet({
         id: petId,
-        name: petName,
-        type: petType,
-        birthDate: birthDate || null,
-        description,
+        name: formData.name,
+        type: formData.type,
+        birthDate: formData.birthDate || null,
+        description: formData.description,
         images: imageUrls,
-        createdAt: Date.now(),
-      };
+        createdAt: Date.now()
+      });
       
-      // Save to localStorage and get the ID
-      const savedId = savePet(petData);
-      console.log('Pet salvo com ID:', savedId);
+      // Limpar o intervalo e definir progresso como 100%
+      clearInterval(progressInterval);
       setUploadProgress(100);
       
-      // Store the ID and show success message
-      setSavedPetId(savedId);
-      setShowSuccessMessage(true);
-      setIsSubmitting(false);
+      // Redirecionar para a página de sucesso
+      setTimeout(() => {
+        router.push(`/success/${petId}`);
+      }, 500);
       
-    } catch (err) {
-      console.error('Erro ao criar momento do pet:', err);
-      setError('Falha ao criar momento do pet. Por favor, tente novamente.');
+    } catch (error) {
+      console.error('Erro ao salvar o pet:', error);
       setIsSubmitting(false);
+      alert('Ocorreu um erro ao salvar o momento. Por favor, tente novamente.');
     }
   };
 
-  const handleFilesUpdate = useCallback((fileItems: any[]) => {
-    setFiles(fileItems);
-  }, []);
-
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-purple-50">
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-purple-50 py-8 px-4 sm:px-6">
       <Head>
-        <title>Criar Momento | Memórias de Pets</title>
-        <meta name="description" content="Registre um novo momento divertido com seu pet" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+        <title>Registrar um Momento | Memórias de Pets</title>
+        <meta name="description" content="Registre um momento especial com seu pet" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
       </Head>
 
-      <main className="container mx-auto px-3 py-6 sm:px-4 sm:py-12">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="max-w-3xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden"
-        >
-          <div className="p-4 sm:p-8">
-            <h1 className="text-2xl sm:text-3xl font-bold text-indigo-700 mb-4 sm:mb-6">Registrar um Momento</h1>
-            
-            {error && (
-              <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-3 sm:p-4 mb-4 sm:mb-6 text-sm sm:text-base">
-                <p>{error}</p>
-              </div>
-            )}
-            
-            {showSuccessMessage && savedPetId && (
-              <div className="bg-green-100 border-l-4 border-green-500 text-green-700 p-3 sm:p-4 mb-4 sm:mb-6">
-                <p className="font-bold">Momento criado com sucesso!</p>
-                <p className="mt-2 text-sm sm:text-base">Clique no botão abaixo para visualizar o QR code e compartilhar este momento.</p>
-                <div className="mt-4">
-                  <Link href={`/momento-criado/${savedPetId}`} passHref>
-                    <div className="inline-block bg-green-600 hover:bg-green-700 text-white py-2 px-4 sm:px-6 rounded-lg transition-colors cursor-pointer text-sm sm:text-base">
-                      Ver QR Code e Compartilhar
-                    </div>
-                  </Link>
-                </div>
-              </div>
-            )}
-            
-            {!showSuccessMessage && (
-              <form onSubmit={handleSubmit} className="text-sm sm:text-base">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
-                  <div>
-                    <label className="block text-gray-700 font-medium mb-1 sm:mb-2" htmlFor="petName">
-                      Nome do Pet *
-                    </label>
-                    <input
-                      type="text"
-                      id="petName"
-                      value={petName}
-                      onChange={(e) => setPetName(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-base"
-                      required
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-gray-700 font-medium mb-1 sm:mb-2" htmlFor="petType">
-                      Tipo de Pet *
-                    </label>
-                    <select
-                      id="petType"
-                      value={petType}
-                      onChange={(e) => setPetType(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-base"
-                      required
-                    >
-                      <option value="">Selecione o tipo</option>
-                      <option value="Cachorro">Cachorro</option>
-                      <option value="Gato">Gato</option>
-                      <option value="Pássaro">Pássaro</option>
-                      <option value="Peixe">Peixe</option>
-                      <option value="Coelho">Coelho</option>
-                      <option value="Hamster">Hamster</option>
-                      <option value="Outro">Outro</option>
-                    </select>
-                  </div>
-                </div>
-                
-                <div className="mb-4 sm:mb-6">
-                  <label className="block text-gray-700 font-medium mb-1 sm:mb-2" htmlFor="birthDate">
-                    Data de Nascimento (opcional)
-                  </label>
-                  <input
-                    type="date"
-                    id="birthDate"
-                    value={birthDate}
-                    onChange={(e) => setBirthDate(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-base"
-                  />
-                </div>
-                
-                <div className="mb-4 sm:mb-6">
-                  <label className="block text-gray-700 font-medium mb-1 sm:mb-2" htmlFor="description">
-                    Descrição do Momento *
-                  </label>
-                  <textarea
-                    id="description"
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    rows={3}
-                    placeholder="Conte um pouco sobre esse momento divertido com seu pet..."
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-base"
-                    required
-                  ></textarea>
-                </div>
-                
-                <div className="mb-6">
-                  <label className="block text-gray-700 font-medium mb-1 sm:mb-2">
-                    Enviar Fotos *
-                  </label>
-                  <div className="filepond-container">
-                    <FilePond
-                      files={files}
-                      onupdatefiles={handleFilesUpdate}
-                      allowMultiple={true}
-                      maxFiles={5}
-                      name="files"
-                      labelIdle='Toque para selecionar ou tire uma foto'
-                      className="mb-2"
-                      credits={false}
-                      allowImagePreview={true}
-                      imagePreviewHeight={156}
-                      acceptedFileTypes={['image/png', 'image/jpeg', 'image/jpg']}
-                    />
-                  </div>
-                  <p className="text-xs sm:text-sm text-gray-500">Faça upload de até 5 fotos do seu pet (PNG, JPG)</p>
-                </div>
-                
-                {isSubmitting && (
-                  <div className="mb-4">
-                    <div className="w-full bg-gray-200 rounded-full h-2.5">
-                      <div 
-                        className="bg-indigo-600 h-2.5 rounded-full transition-all duration-300" 
-                        style={{ width: `${uploadProgress}%` }}
-                      ></div>
-                    </div>
-                    <p className="text-xs text-gray-500 mt-1 text-center">{uploadProgress}% concluído</p>
-                  </div>
-                )}
-                
-                <div className="flex flex-col sm:flex-row sm:justify-end space-y-2 sm:space-y-0 sm:space-x-4">
-                  <button
-                    type="button"
-                    onClick={() => router.push('/')}
-                    className="w-full sm:w-auto px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors text-center"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className={`w-full sm:w-auto px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-center ${
-                      isSubmitting ? 'opacity-70 cursor-not-allowed' : ''
-                    }`}
-                  >
-                    {isSubmitting ? 'Salvando...' : 'Salvar Momento'}
-                  </button>
-                </div>
-              </form>
-            )}
-          </div>
-        </motion.div>
-      </main>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="max-w-3xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden"
+      >
+        <div className="p-4 sm:p-6 md:p-8">
+          <h1 className="text-2xl sm:text-3xl font-bold text-center text-indigo-700 mb-6">Registrar um Momento Especial</h1>
+          
+          <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+            <div>
+              <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">Nome do Pet</label>
+              <input
+                type="text"
+                id="name"
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${errors.name ? 'border-red-500' : 'border-gray-300'}`}
+                placeholder="Digite o nome do seu pet"
+              />
+              {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name}</p>}
+            </div>
 
-      <style jsx global>{`
-        /* Estilos específicos para melhorar a experiência em dispositivos móveis */
-        @media (max-width: 640px) {
-          .filepond--root {
-            font-size: 14px;
-          }
-          .filepond--drop-label {
-            min-height: 5em;
-          }
-          .filepond--panel-root {
-            border-radius: 0.5em;
-          }
-        }
-      `}</style>
+            <div>
+              <label htmlFor="type" className="block text-sm font-medium text-gray-700 mb-1">Tipo de Pet</label>
+              <select
+                id="type"
+                name="type"
+                value={formData.type}
+                onChange={handleChange}
+                className={`w-full px-3 py-2 border rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${errors.type ? 'border-red-500' : 'border-gray-300'}`}
+              >
+                <option value="">Selecione o tipo</option>
+                <option value="Cachorro">Cachorro</option>
+                <option value="Gato">Gato</option>
+                <option value="Pássaro">Pássaro</option>
+                <option value="Peixe">Peixe</option>
+                <option value="Roedor">Roedor</option>
+                <option value="Réptil">Réptil</option>
+                <option value="Outro">Outro</option>
+              </select>
+              {errors.type && <p className="mt-1 text-sm text-red-600">{errors.type}</p>}
+            </div>
+
+            <div>
+              <label htmlFor="birthDate" className="block text-sm font-medium text-gray-700 mb-1">Data de Nascimento (opcional)</label>
+              <input
+                type="date"
+                id="birthDate"
+                name="birthDate"
+                value={formData.birthDate}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">Descrição do Momento</label>
+              <textarea
+                id="description"
+                name="description"
+                value={formData.description}
+                onChange={handleChange}
+                rows={4}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${errors.description ? 'border-red-500' : 'border-gray-300'}`}
+                placeholder="Descreva esse momento especial"
+              ></textarea>
+              {errors.description && <p className="mt-1 text-sm text-red-600">{errors.description}</p>}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Fotos</label>
+              <FilePond
+                files={files}
+                onupdatefiles={setFiles}
+                allowMultiple={true}
+                maxFiles={5}
+                name="files"
+                labelIdle='Arraste e solte suas fotos ou <span class="filepond--label-action">Toque para selecionar</span>'
+                acceptedFileTypes={['image/png', 'image/jpeg', 'image/jpg']}
+                labelFileTypeNotAllowed="Apenas imagens PNG e JPG são permitidas"
+                imagePreviewHeight={200}
+                stylePanelLayout="compact"
+                styleLoadIndicatorPosition="center bottom"
+                styleProgressIndicatorPosition="center bottom"
+                styleButtonRemoveItemPosition="center bottom"
+                credits={false}
+              />
+              <p className="mt-1 text-xs text-gray-500">Máximo de 5 fotos (PNG ou JPG)</p>
+            </div>
+
+            {isSubmitting && (
+              <div className="mt-4">
+                <div className="w-full bg-gray-200 rounded-full h-2.5">
+                  <div 
+                    className="bg-indigo-600 h-2.5 rounded-full transition-all duration-300" 
+                    style={{ width: `${uploadProgress}%` }}
+                  ></div>
+                </div>
+                <p className="text-center text-sm mt-2 text-gray-600">{uploadProgress}% concluído</p>
+              </div>
+            )}
+
+            <div className="flex flex-col sm:flex-row justify-center gap-4 pt-4">
+              <button
+                type="button"
+                onClick={() => router.back()}
+                className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                disabled={isSubmitting}
+              >
+                Voltar
+              </button>
+              <button
+                type="submit"
+                className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:bg-indigo-400"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? 'Salvando...' : 'Salvar Momento'}
+              </button>
+            </div>
+          </form>
+        </div>
+      </motion.div>
     </div>
   );
 }
