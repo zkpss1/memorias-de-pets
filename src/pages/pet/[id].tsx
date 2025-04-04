@@ -8,7 +8,7 @@ import QRCode from 'qrcode.react';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../../utils/firebase';
 import { calculateTimeDifference, formatTimeDifference } from '../../utils/timeUtils';
-import { generatePetProfileUrl, downloadQRCode } from '../../utils/qrCode';
+import { generatePetVisualizationUrl, downloadQRCode } from '../../utils/qrCode';
 import { 
   FacebookShareButton, 
   TwitterShareButton, 
@@ -107,7 +107,7 @@ export default function PetMemory() {
 
   if (!pet) return null;
 
-  const shareUrl = generatePetProfileUrl(pet.id);
+  const shareUrl = generatePetVisualizationUrl(pet.id);
   const shareTitle = `Remembering ${pet.name} - Pet Memory`;
 
   return (
@@ -202,7 +202,7 @@ export default function PetMemory() {
                       <div className="inline-block bg-white p-4 rounded-lg shadow-md">
                         <QRCode
                           id="qr-code"
-                          value={generatePetProfileUrl(pet.id)}
+                          value={generatePetVisualizationUrl(pet.id)}
                           size={150}
                           level="H"
                           includeMargin={true}
