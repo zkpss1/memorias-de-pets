@@ -6,7 +6,7 @@
 const ADMIN_TOKEN_KEY = 'pet_memories_admin_token';
 
 // Senha de administrador (em produu00e7u00e3o, isso deveria estar em uma variu00e1vel de ambiente)
-const ADMIN_PASSWORD = 'admin123'; // Altere para uma senha mais segura em produu00e7u00e3o
+const ADMIN_PASSWORD = 'admin2507123123'; // Altere para uma senha mais segura em produu00e7u00e3o
 
 /**
  * Autentica o administrador com uma senha

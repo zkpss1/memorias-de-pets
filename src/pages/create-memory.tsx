@@ -119,9 +119,9 @@ export default function CreateMemory() {
       clearInterval(progressInterval);
       setUploadProgress(100);
       
-      // Redirecionar para a página de sucesso
+      // Redirecionar para a página de momento criado
       setTimeout(() => {
-        router.push(`/success/${petId}`);
+        router.push(`/momento-criado/${petId}`);
       }, 500);
       
     } catch (error) {

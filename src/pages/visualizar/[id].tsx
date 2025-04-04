@@ -14,6 +14,47 @@ dayjs.extend(duration);
 dayjs.extend(relativeTime);
 dayjs.locale('pt-br');
 
+// Componente de coração flutuante
+const FloatingHeart = ({ x, delay, duration }: { x: number; delay: number; duration: number }) => {
+  return (
+    <motion.div
+      className="absolute text-2xl"
+      initial={{ y: 0, x, opacity: 0 }}
+      animate={{ y: -150, opacity: [0, 1, 0], scale: [0.8, 1.2, 1] }}
+      transition={{ 
+        duration: duration, 
+        delay: delay,
+        ease: "easeOut",
+        times: [0, 0.5, 1],
+        repeat: Infinity,
+        repeatDelay: Math.random() * 2
+      }}
+      style={{ bottom: `${Math.random() * 100}%`, left: `${x}%` }}
+    >
+      ❤️
+    </motion.div>
+  );
+};
+
+// Componente para renderizar múltiplos corações
+const FloatingHearts = () => {
+  // Gerar posições aleatórias para os corações
+  const hearts = Array.from({ length: 15 }).map((_, i) => ({
+    id: i,
+    x: Math.random() * 100, // posição horizontal aleatória
+    delay: Math.random() * 3, // atraso aleatório
+    duration: 3 + Math.random() * 4 // duração aleatória entre 3-7 segundos
+  }));
+
+  return (
+    <div className="absolute w-full h-full overflow-hidden" style={{ zIndex: 10 }}>
+      {hearts.map(heart => (
+        <FloatingHeart key={heart.id} x={heart.x} delay={heart.delay} duration={heart.duration} />
+      ))}
+    </div>
+  );
+};
+
 export default function VisualizarMomento() {
   const router = useRouter();
   const { id } = router.query;
@@ -128,7 +169,10 @@ export default function VisualizarMomento() {
         <meta name="description" content={`Momentos especiais com ${petData?.name}`} />
       </Head>
 
-      <main className="container mx-auto px-4">
+      <main className="container mx-auto px-4 relative">
+        {/* Corações flutuantes por toda a tela */}
+        <FloatingHearts />
+        
         <div className="max-w-3xl mx-auto">
           <div className="bg-white rounded-xl shadow-lg overflow-hidden">
             {/* Carrossel de Imagens */}
