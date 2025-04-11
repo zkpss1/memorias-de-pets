@@ -7,7 +7,7 @@ on:
       - master
 
 env:
-  AZURE_WEBAPP_NAME: ptslove    # Nome do seu Web App no Azure
+  AZURE_WEBAPP_NAME: ptslove    # Web App name in Azure
   AZURE_WEBAPP_PACKAGE_PATH: '.'      # Caminho do projeto, '.' significa raiz
   NODE_VERSION: '18.x'               # Versão do Node.js
 
