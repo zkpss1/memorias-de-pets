@@ -38,9 +38,10 @@ jobs:
         mkdir -p build
         cp -r .next build/
         cp -r node_modules build/
-        cp package.json build/
+        cp package*.json build/
         cp next.config.js build/
         cp server.js build/
+        cp web.config build/
 
     - name: 'Deploy to Azure Web App'
       uses: azure/webapps-deploy@v2
@@ -50,3 +51,4 @@ jobs:
         package: ${{ env.AZURE_WEBAPP_PACKAGE_PATH }}
         type: 'zip'
         clean: true
+        startup-command: 'npm start'
