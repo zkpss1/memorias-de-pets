@@ -8,7 +8,6 @@ on:
 
 env:
   AZURE_WEBAPP_NAME: ptslove    # Web App name in Azure
-  AZURE_WEBAPP_PACKAGE_PATH: './build'  # Caminho para a pasta de build
   NODE_VERSION: '18.x'               # Versão do Node.js
 
 jobs:
@@ -23,31 +22,15 @@ jobs:
         node-version: ${{ env.NODE_VERSION }}
         cache: 'npm'
 
-    - name: Clean install dependencies
-      run: |
-        npm ci
+    - name: Install dependencies
+      run: npm ci
 
     - name: Build
-      run: |
-        npm run build
-        
-    - name: Prepare for deployment
-      run: |
-        rm -rf node_modules
-        npm ci --only=production
-        mkdir -p build
-        cp -r .next build/
-        cp -r node_modules build/
-        cp package*.json build/
-        cp next.config.js build/
-        cp server.js build/
-        cp web.config build/
+      run: npm run build
 
     - name: 'Deploy to Azure Web App'
       uses: azure/webapps-deploy@v2
       with:
         app-name: ${{ env.AZURE_WEBAPP_NAME }}
         publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
-        package: ${{ env.AZURE_WEBAPP_PACKAGE_PATH }}
-        type: 'zip'
-        clean: true
+        package: .
