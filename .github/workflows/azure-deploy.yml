@@ -8,7 +8,7 @@ on:
 
 env:
   AZURE_WEBAPP_NAME: ptslove    # Web App name in Azure
-  AZURE_WEBAPP_PACKAGE_PATH: '.'      # Caminho do projeto, '.' significa raiz
+  AZURE_WEBAPP_PACKAGE_PATH: './build'  # Caminho para a pasta de build
   NODE_VERSION: '18.x'               # Versão do Node.js
 
 jobs:
@@ -23,11 +23,23 @@ jobs:
         node-version: ${{ env.NODE_VERSION }}
         cache: 'npm'
 
-    - name: npm install and build
+    - name: Clean install dependencies
       run: |
-        npm install
+        npm ci
+
+    - name: Build
+      run: |
         npm run build
-        npm run start:prod || true  # Tenta iniciar em modo produção, mas não falha se não existir
+        
+    - name: Prepare for deployment
+      run: |
+        rm -rf node_modules
+        npm ci --only=production
+        cp -r .next build/
+        cp -r node_modules build/
+        cp package.json build/
+        cp next.config.js build/
+        cp server.js build/
 
     - name: 'Deploy to Azure Web App'
       uses: azure/webapps-deploy@v2
@@ -35,4 +47,4 @@ jobs:
         app-name: ${{ env.AZURE_WEBAPP_NAME }}
         publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
         package: ${{ env.AZURE_WEBAPP_PACKAGE_PATH }}
-        startup-command: 'npm start'
+        startup-command: 'cd /home/site/wwwroot && npm start'
